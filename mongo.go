@@ -5,10 +5,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/tkanos/gonfig"
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
-// Takes a configuration name (s) and returns a mongo session
+// GetMongoSession takes a configuration name (s) and returns a mongo session
 func GetMongoSession(conf Configuration) *mgo.Session {
 
 	mongoDBDialInfo := &mgo.DialInfo{
@@ -28,5 +30,28 @@ func GetMongoSession(conf Configuration) *mgo.Session {
 	mongoSession.SetMode(mgo.Monotonic, true)
 
 	return mongoSession.Copy()
+
+}
+
+// GetTasksSince returns all tasks since the date that is passed in
+func GetTasksSince(startTime time.Time) []Task {
+	result := []Task{} // The tasks
+
+	configuration := Configuration{}
+
+	// TODO: something with the file name to cope with dev / prod! environments
+	gonfig.GetConf("config/config.development.json", &configuration)
+
+	session := GetMongoSession(configuration)
+	defer session.Close()
+
+	c := session.DB(configuration.Database).C("events")
+
+	err := c.Find(bson.M{"time": bson.M{"$gte": startTime}}).All(&result)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return result
 
 }
