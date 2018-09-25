@@ -53,5 +53,24 @@ func GetTasksSince(startTime time.Time) []Task {
 		log.Fatal(err)
 	}
 	return result
+}
 
+// AddNewTask adds a new task to the database
+func AddNewTask(task Task) {
+
+	// TODO: would be nice to not have to repeat this here
+	configuration := Configuration{}
+
+	// TODO: something with the file name to cope with dev / prod! environments
+	gonfig.GetConf("config/config.development.json", &configuration)
+
+	session := GetMongoSession(configuration)
+	defer session.Close()
+
+	c := session.DB(configuration.Database).C("events")
+
+	err := c.Insert(&task)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
